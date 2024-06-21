@@ -1,0 +1,15 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: mlugg/setup-zig@v1
+        with:
+          version: "0.13.0"
+      - run: zig fmt --check src build.zig
+      - run: zig build test
+      - run: zig build run -- --width 160 --height 90 --samples 8 --scene spheres --out spheres.png
+      - run: zig build run -- --width 120 --height 120 --samples 8 --scene cornell --out cornell.ppm
+      - run: od -A x -t x1 -N 8 spheres.png | grep -q "89 50 4e 47" && head -c 2 cornell.ppm | grep -q P6
