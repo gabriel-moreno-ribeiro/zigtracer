@@ -1,9 +1,8 @@
 # zigtracer
 
-A physically based path tracer written from scratch in Zig: spheres and
-triangles, a bounding volume hierarchy, diffuse, metal, glass and emissive
-materials, a thin-lens camera with depth of field, multithreaded rendering,
-and PNG and PPM writers that need no libraries.
+Um path tracer fisicamente baseado em Zig: esferas e triângulos, BVH, materiais difuso, metal, vidro e emissivo, câmera de lente fina com profundidade de campo, render multithread e escritores de PNG e PPM sem biblioteca nenhuma.
+
+Cada imagem demora minutos e cada minuto vale a pena. É o único projeto da lista que eu abro só pra ver a saída.
 
 ```sh
 zig build -Doptimize=ReleaseFast
@@ -13,46 +12,22 @@ zig build -Doptimize=ReleaseFast
 zig build test
 ```
 
-Options: `--width`, `--height`, `--samples` (rays per pixel), `--depth`
-(max bounces), `--threads` (default: all cores), `--seed`,
-`--scene spheres|random|cornell`, `--out file.png|file.ppm`.
+Opções: `--width`, `--height`, `--samples` (raios por pixel), `--depth` (rebotes), `--threads` (padrão: todos os núcleos), `--seed`, `--scene spheres|random|cornell`, `--out arquivo.png|arquivo.ppm`.
 
-## How it works
+## O caminho de um raio
 
-- **Rays and vectors** (`vec.zig`): a small `Vec3` with the usual algebra,
-  reflection and Snell refraction, and rejection-sampled random directions.
-- **Geometry** (`scene.zig`): analytic ray/sphere intersection with the
-  nearest-root rule and inside/outside normals, and Moeller-Trumbore
-  ray/triangle intersection. Every object has an axis-aligned bounding box.
-- **BVH**: objects are recursively split at the median centroid along the
-  widest axis. A ray test descends only into boxes it actually crosses
-  (slab test), so a scene with hundreds of spheres costs a handful of box
-  tests per ray instead of hundreds of sphere tests.
-- **Materials**: Lambertian scattering (cosine-weighted through a random
-  unit vector on the normal), metal with fuzz, dielectric with Schlick
-  reflectance and total internal reflection, and emissive surfaces for
-  lights. The Cornell box is lit only by an emitter, so light bounces off
-  the coloured walls onto the spheres.
-- **Path tracing** (`render.zig`): each sample shoots a jittered ray
-  through the pixel (and from a random point on the lens for depth of
-  field), then follows it through up to `depth` bounces, multiplying the
-  throughput by each attenuation and adding emission. Pixels average their
-  samples; output is gamma corrected.
-- **Threads**: worker threads pull rows from an atomic counter, each with
-  its own seeded random generator, so renders are deterministic for a given
-  seed and thread count.
-- **Encoders** (`image.zig`): binary PPM, and PNG with the IHDR/IDAT/IEND
-  chunks, CRC-32, and a zlib stream of stored deflate blocks plus Adler-32,
-  all implemented here.
+- **Vetores** (`vec.zig`): um `Vec3` com a álgebra de sempre, reflexão, refração de Snell e amostragem de direções aleatórias por rejeição.
+- **Geometria** (`scene.zig`): interseção analítica com esfera (raiz mais próxima, normal dentro/fora) e Möller–Trumbore pra triângulo. Todo objeto tem uma caixa envolvente.
+- **BVH**: os objetos são divididos recursivamente na mediana dos centróides no eixo mais largo. Um raio só desce nas caixas que ele cruza (slab test), então uma cena com centenas de esferas custa meia dúzia de testes de caixa por raio em vez de centenas de esferas.
+- **Materiais**: Lambert (cosseno ponderado via vetor aleatório unitário somado à normal), metal com fuzz, dielétrico com reflectância de Schlick e reflexão interna total, e superfícies emissivas. A Cornell box é iluminada só por um emissor, então a luz quica das paredes coloridas pras esferas.
+- **Path tracing** (`render.zig`): cada amostra dispara um raio com jitter pelo pixel (e de um ponto aleatório da lente, pra profundidade de campo), segue até `depth` rebotes multiplicando o throughput pela atenuação e somando a emissão. Os pixels fazem a média e a saída é corrigida pra gamma.
+- **Threads**: workers pegam linhas de um contador atômico, cada um com o próprio gerador semeado, então o render é determinístico pra uma seed e um número de threads.
+- **Codificadores** (`image.zig`): PPM binário e PNG com IHDR/IDAT/IEND, CRC-32 e um stream zlib de blocos deflate "stored" mais Adler-32, tudo feito aqui.
 
-## Tests
+Zig me ganhou pelos `comptime` e pelo `std.Thread` sem cerimônia. Me perdeu um pouco pelo `zig fmt` implacável, mas ele tem razão.
 
-`zig build test` covers vector algebra, Snell's law, sampling, sphere and
-triangle intersections, the slab test, BVH results against brute force on
-random rays, camera ray directions, a rendered image (a red emissive sphere
-on black: red centre, black corner), determinism, CRC/Adler test vectors,
-and that the PNG output decodes with the standard library's zlib.
+Testes: `zig build test` (álgebra, Snell, amostragem, interseções, slab test, BVH contra força bruta em raios aleatórios, direções da câmera, uma imagem renderizada com esfera emissiva vermelha, determinismo, vetores de teste de CRC/Adler, e que o PNG decodifica com o zlib da biblioteca padrão).
 
-## License
+---
 
-MIT
+**EN:** a physically based path tracer in Zig: spheres and triangles, a median-split BVH with slab tests, Lambertian/metal/dielectric/emissive materials, a thin-lens camera, deterministic multithreaded rendering, and hand-written PNG (with CRC-32, zlib stored blocks and Adler-32) and PPM writers. `zig build test` checks the math, the BVH against brute force and the encoders. MIT.
